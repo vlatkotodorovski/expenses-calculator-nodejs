@@ -1,58 +1,153 @@
-const users = require('./models/users');
+const User = require('./models/users');
 const express = require('express');
-const products = require('./models/products')
-var app = express();
-
+const Product = require('./models/products');
 const myParser = require('body-parser');
-app.use(myParser.urlencoded({extended:true}));
-
 const session = require('express-session');
-app.use(session({secret:"test"}));
+// const User = require('./models/users')
 
-var u1 = new users.create('admin', 'admin', 'admin@yahoo.com', '7 january', '075651010', 'Macedonia','00000')
+const db = require('./connection')
 
-app.post('/register', (req,res)=>{
+var app = express();
+app.listen(3000);
+
+app.use(session({ secret: "test", resave: true, saveUninitialized: true }));
+
+app.use(myParser.urlencoded({ extended: true }));
+
+app.post("/register", (req, res, next) => {
     var firstname = req.body.firstname;
-    var lastname = req.body.name;
+    var lastname = req.body.lastname;
     var email = req.body.email;
     var dateOfBirth = req.body.dateOfBirth;
     var telephone = req.body.telephone;
     var country = req.body.country;
     var password = req.body.password;
 
-    var newUser = new users.create(firstname, lastname, email, dateOfBirth, telephone, country, password)
+    let user = new User({
+        firstname: firstname,
+        lastname: lastname,
+        email: email,
+        dateOfBirth: req.body.dateOfBirth,
+        telephone: telephone,
+        country: country,
+        password: password
+    });
+
+    user.save(function (err) {
+        if (err) {
+            return next(err);
+        }
+        res.send("User saved!")
+    })
+
+
+
+});
+
+app.post("/newproduct", (req, res, next) => {
+    var productName = req.body.productName;
+    var productDescription = req.body.prodDesc;
+    var productType = req.body.productType;
+    var purchaseDate = req.body.purchaseDate;
+    var price = req.body.price;
+    var userEmail = req.session.email;
+
+    let newproduct = new Product({
+        productName: productName,
+        productDescription: productDescription,
+        productType: productType,
+        purchaseDate: purchaseDate,
+        price: price,
+        userEmail: userEmail
+    });
+
+    newproduct.save(function (err) {
+        if (err) {
+            return next(err);
+        }
+        res.send("New Product saved!");
+    })
 })
 
-app.post('/login', (req,res)=>{
-    var email = req.body.emailLogin;
-    var password = req.body.passwordLogin;
+app.get("/products", (res, next) => {
+    Product.find({}, function (err, products) {
+        if (err) {
+            return next(err)
+        }
 
-    //database checks
-
-    req.session.user = email;
-    
-    //return respons to front end
-
+        res.send(products)
+    })
 })
 
-app.post('/addProduct', (req, res)=>{
-    if(req.session.email){
-        var productName = req.body.productName;
-        var productDescription = req.body.prodDesc;
-        var productType = req.body.productType;
-        var purchaseDate = req.body.purchaseDate;
-        var price = req.body.price;
-        var userEmail = req.session.email;
-    
-        var p = new products.create(productName, productDescription, productType, purchaseDate, price, userEmail)
+app.get("/expenses", (req, res) => {
+    Product.find({}, function (err, products) {
+        if (err) {
+            return next(err)
+        }
 
-        //send response to Front End
-    }
-
-    else {
-        res.status(403).send('Access denied');
-    }
-  
+        res.send(products)
+    })
 })
 
-console.log(p)
+app.post("/", (req, res) => {
+    var email = req.body.email;
+    var password = req.body.password;
+
+    user.save(function (err) {
+        if (err) {
+            return next(err);
+        }
+        res.send("User saved!")
+    })
+});
+
+// var u1 = new users.create('admin', 'admin', 'admin@yahoo.com', '7 january', '075651010', 'Macedonia','00000')
+
+// app.post('/register', (req,res)=>{
+//     var firstname = req.body.firstname;
+//     var lastname = req.body.name;
+//     var email = req.body.email;
+//     var dateOfBirth = req.body.dateOfBirth;
+//     var telephone = req.body.telephone;
+//     var country = req.body.country;
+//     var password = req.body.password;
+
+//     var newUser = new users.create(firstname, lastname, email, dateOfBirth, telephone, country, password)
+// })
+
+// app.post('/', (req,res)=>{
+//     var email = req.body.emailLogin;
+//     var password = req.body.passwordLogin;
+
+//     //database checks
+
+//     req.session.user = email;
+
+//     //return respons to front end
+
+// })
+
+
+// app.post('/addProduct', (req, res)=>{
+//     if(req.session.email){
+//         var productName = req.body.productName;
+//         var productDescription = req.body.prodDesc;
+//         var productType = req.body.productType;
+//         var purchaseDate = req.body.purchaseDate;
+//         var price = req.body.price;
+//         var userEmail = req.session.email;
+
+//         // var p = new products.create(productName, productDescription, productType, purchaseDate, price, userEmail)
+
+//         //send response to Front End
+//     }
+
+//     else {
+//         res.status(403).send('Access denied');
+//     }
+
+// })
+
+
+
+// console.log(p)

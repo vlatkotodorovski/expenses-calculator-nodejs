@@ -1,5 +1,3 @@
-
-
 // exports.create = function(pn, pd, type, purchaseDate, price, userEmail ){
 //     this.productName = pn;
 //     this.productDescription = type;
