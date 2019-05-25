@@ -10,7 +10,21 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-var productSchema = new Schema({
+// var productSchema = new Schema({
+//     productName: {type: String, required: true},
+//     productDescription: {type: String},
+//     productType: {type: String},
+//     purchaseDate: {type: Number, required: true},
+//     price: {type: Number, required: true},
+//     userId: {type: Number, required:true}
+
+// })
+
+// var Product = mongoose.model('Product', productSchema);
+
+// module.exports = Product;
+
+const ProductModel = mongoose.model('Product', new Schema({
     productName: {type: String, required: true},
     productDescription: {type: String},
     productType: {type: String},
@@ -18,8 +32,7 @@ var productSchema = new Schema({
     price: {type: Number, required: true},
     userId: {type: Number, required:true}
 
-})
+}))
 
-var Product = mongoose.model('Product', productSchema);
-
-module.exports = Product;
+module.exports = ProductModel;
+// export default ProductModel;

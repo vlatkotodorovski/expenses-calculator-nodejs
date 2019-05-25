@@ -4,6 +4,8 @@ const Product = require('./models/products');
 const myParser = require('body-parser');
 const session = require('express-session');
 // const User = require('./models/users')
+const jwt = require('jsonwebtoken');
+const jwtSecret = "secret";
 
 const db = require('./connection')
 
@@ -14,23 +16,76 @@ app.use(session({ secret: "test", resave: true, saveUninitialized: true }));
 
 app.use(myParser.urlencoded({ extended: true }));
 
-let allowCrossDomain = function(req, res, next) {
+let allowCrossDomain = function (req, res, next) {
     res.header('Access-Control-Allow-Origin', "*");
     res.header('Access-Control-Allow-Headers', "*");
     next();
-  }
-  app.use(allowCrossDomain);
+}
+app.use(allowCrossDomain);
 
-app.post("/register", (req, res, next) => {
-    var firstname = req.body.firstname;
-    var lastname = req.body.lastname;
+app.use(function (req, res, next) {
+    if (req._parsedUrl.pathname !== '/login' && req._parsedUrl.pathname !== '/register') {
+        console.log('decoded token', jwt.verify(req.headers.access_token, jwtSecret));
+        const decodedToken = jwt.verify(req.headers.access_token, jwtSecret);
+
+        if (decodedToken === null) {
+            res.send('Denied access').status(403);
+        } else {
+            User.findOne({ email: decodedToken.email }, (err, user) => {
+                if (user !== null) {
+                    next();
+                } else {
+                    res.send('Denied access').status(403);
+                }
+            })
+        }
+    } else {
+        next();
+    }
+})
+
+app.post("/login", (req, res) => {
     var email = req.body.email;
-    var dateOfBirth = req.body.dateOfBirth;
-    var telephone = req.body.telephone;
-    var country = req.body.country;
     var password = req.body.password;
 
-    let user = new User({
+    User.findOne({ email, password }, (err, user) => {
+        if (err) {
+            res.send('Error from database').status(500);
+        } else {
+            if (user !== null) {
+                const access_token = jwt.sign({ email: user.email }, jwtSecret);
+                res.send({ access_token })
+            } else {
+                res.send('Credentials not correct').status(401);
+            }
+        }
+    })
+
+    // let user = new User({
+
+    // })
+
+
+    // user.save(function (err) {
+    //     if (err) {
+    //         return next(err);
+    //     }
+    //     res.send("User saved!")
+    // })
+});
+
+app.post("/register", (req, res, next) => {
+    // var firstname = req.body.firstname;
+    // var lastname = req.body.lastname;
+    // var email = req.body.email;
+    // var dateOfBirth = req.body.dateOfBirth;
+    // var telephone = req.body.telephone;
+    // var country = req.body.country;
+    // var password = req.body.password;
+
+    const { firstname, lastname, email, dateOfBirth, telephone, country, password } = req.body;
+
+    let newUser = new User({
         firstname: firstname,
         lastname: lastname,
         email: email,
@@ -41,15 +96,23 @@ app.post("/register", (req, res, next) => {
     });
 
 
-    user.save(function (err) {
+    User.findOne({ email }, (err, user) => {
         if (err) {
-            return next(err);
+            res.send('Error creating user');
+        } else {
+            if (!user) {
+                newUser.save(function (err) {
+                    if (err) {
+                        return next(err);
+                    }
+                    const access_token = jwt.sign({ email: newUser.email }, jwtSecret);
+                    res.send({ access_token })
+                })
+            } else {
+                res.send('User already exist').status(406)
+            }
         }
-        res.send("User saved!")
     })
-
-
-
 });
 
 app.post("/new-product", (req, res, next) => {
@@ -97,21 +160,10 @@ app.get("/expenses", (req, res) => {
     })
 })
 
-app.post("/", (req, res) => {
-    var email = req.body.email;
-    var password = req.body.password;
 
-    user.save(function (err) {
+app.delete('/products/:id', (req, res, next) => {
+    Product.deleteOne({ _id: req.params.id }, function (err) {
         if (err) {
-            return next(err);
-        }
-        res.send("User saved!")
-    })
-});
-
-app.delete('/products/:id', (req,res,next)=>{
-    Product.deleteOne({_id:req.params.id}, function(err){
-        if(err){
             return next(err)
         }
         res.send('Succesfully Deleted product')
@@ -119,14 +171,16 @@ app.delete('/products/:id', (req,res,next)=>{
     )
 })
 
-app.patch('/products/:id', (req,res,next)=>{
-    Product.findByIdAndUpdate({_id:req.params.id}, req.body, (err)=>{
-        if(err){
+app.patch('/products/:id', (req, res, next) => {
+    Product.findByIdAndUpdate({ _id: req.params.id }, req.body, (err) => {
+        if (err) {
             return next(err)
         }
         res.send('Succesfully Updated product')
     })
 })
+
+
 
 // var u1 = new users.create('admin', 'admin', 'admin@yahoo.com', '7 january', '075651010', 'Macedonia','00000')
 
