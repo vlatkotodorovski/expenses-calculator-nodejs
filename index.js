@@ -12,9 +12,9 @@ const db = require('./connection')
 var app = express();
 app.listen(3000);
 
-app.use(session({ secret: "test", resave: true, saveUninitialized: true }));
+// app.use(session({ secret: "test", resave: true, saveUninitialized: true }));
 
-app.use(myParser.urlencoded({ extended: true }));
+app.use(myParser.json({ extended: true }));
 
 let allowCrossDomain = function (req, res, next) {
     res.header('Access-Control-Allow-Origin', "*");
@@ -35,7 +35,7 @@ app.use(function (req, res, next) {
                 if (user !== null) {
                     next();
                 } else {
-                    res.send('Denied access').status(403);
+                    res.status(403).send('Denied access')
                 }
             })
         }
@@ -56,7 +56,7 @@ app.post("/login", (req, res) => {
                 const access_token = jwt.sign({ email: user.email }, jwtSecret);
                 res.send({ access_token })
             } else {
-                res.send('Credentials not correct').status(401);
+                res.status(403).send('Credentials not correct');
             }
         }
     })
