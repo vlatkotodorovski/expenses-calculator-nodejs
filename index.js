@@ -14,6 +14,13 @@ app.use(session({ secret: "test", resave: true, saveUninitialized: true }));
 
 app.use(myParser.urlencoded({ extended: true }));
 
+let allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', "*");
+    res.header('Access-Control-Allow-Headers', "*");
+    next();
+  }
+  app.use(allowCrossDomain);
+
 app.post("/register", (req, res, next) => {
     var firstname = req.body.firstname;
     var lastname = req.body.lastname;
@@ -27,11 +34,12 @@ app.post("/register", (req, res, next) => {
         firstname: firstname,
         lastname: lastname,
         email: email,
-        dateOfBirth: req.body.dateOfBirth,
+        dateOfBirth: dateOfBirth,
         telephone: telephone,
         country: country,
         password: password
     });
+
 
     user.save(function (err) {
         if (err) {
@@ -44,13 +52,13 @@ app.post("/register", (req, res, next) => {
 
 });
 
-app.post("/newproduct", (req, res, next) => {
+app.post("/new-product", (req, res, next) => {
     var productName = req.body.productName;
-    var productDescription = req.body.prodDesc;
+    var productDescription = req.body.productDescription;
     var productType = req.body.productType;
     var purchaseDate = req.body.purchaseDate;
     var price = req.body.price;
-    var userEmail = req.session.email;
+    var userId = req.body.userId;
 
     let newproduct = new Product({
         productName: productName,
@@ -58,7 +66,7 @@ app.post("/newproduct", (req, res, next) => {
         productType: productType,
         purchaseDate: purchaseDate,
         price: price,
-        userEmail: userEmail
+        userId: userId
     });
 
     newproduct.save(function (err) {
@@ -69,7 +77,7 @@ app.post("/newproduct", (req, res, next) => {
     })
 })
 
-app.get("/products", (res, next) => {
+app.get("/products", (req, res) => {
     Product.find({}, function (err, products) {
         if (err) {
             return next(err)
@@ -100,6 +108,25 @@ app.post("/", (req, res) => {
         res.send("User saved!")
     })
 });
+
+app.delete('/products/:id', (req,res,next)=>{
+    Product.deleteOne({_id:req.params.id}, function(err){
+        if(err){
+            return next(err)
+        }
+        res.send('Succesfully Deleted product')
+    }
+    )
+})
+
+app.patch('/products/:id', (req,res,next)=>{
+    Product.findByIdAndUpdate({_id:req.params.id}, req.body, (err)=>{
+        if(err){
+            return next(err)
+        }
+        res.send('Succesfully Updated product')
+    })
+})
 
 // var u1 = new users.create('admin', 'admin', 'admin@yahoo.com', '7 january', '075651010', 'Macedonia','00000')
 
