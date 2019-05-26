@@ -17,10 +17,11 @@ var usersSchema = new Schema({
     firstname: { type: String, required: true },
     lastname: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    dateOfBirth: { type: Number, required: true },
+    dateOfBirth: { type: Date, required: true },
     telephone: { type: Number, required: true },
     country: { type: String, required: true },
     password: { type: String, required: true },
+    products: [{ type: Schema.Types.ObjectId, ref: 'Product' }]
 })
 
 var User = mongoose.model('User', usersSchema);

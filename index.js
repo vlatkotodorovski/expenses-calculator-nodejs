@@ -3,6 +3,7 @@ const express = require('express');
 const Product = require('./models/products');
 const myParser = require('body-parser');
 const session = require('express-session');
+var cors = require('cors')
 // const User = require('./models/users')
 const jwt = require('jsonwebtoken');
 const jwtSecret = "secret";
@@ -16,14 +17,16 @@ app.listen(3000);
 
 app.use(myParser.json({ extended: true }));
 
-let allowCrossDomain = function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', "*");
-    res.header('Access-Control-Allow-Headers', "*");
-    next();
-}
-app.use(allowCrossDomain);
+app.use(cors())
+// let allowCrossDomain = function (req, res, next) {
+//     res.header('Access-Control-Allow-Origin', "*");
+//     res.header('Access-Control-Allow-Headers', "*");
+//     next();
+// }
+// app.use(allowCrossDomain);
 
 app.use(function (req, res, next) {
+    console.log("access-token", req.header("access_token"))
     if (req._parsedUrl.pathname !== '/login' && req._parsedUrl.pathname !== '/register') {
         console.log('decoded token', jwt.verify(req.headers.access_token, jwtSecret));
         const decodedToken = jwt.verify(req.headers.access_token, jwtSecret);
@@ -33,6 +36,7 @@ app.use(function (req, res, next) {
         } else {
             User.findOne({ email: decodedToken.email }, (err, user) => {
                 if (user !== null) {
+                    req.decodedUserMail = decodedToken.email;
                     next();
                 } else {
                     res.status(403).send('Denied access')
@@ -103,13 +107,14 @@ app.post("/register", (req, res, next) => {
             if (!user) {
                 newUser.save(function (err) {
                     if (err) {
+                        res.status(406).send(err)
                         return next(err);
                     }
                     const access_token = jwt.sign({ email: newUser.email }, jwtSecret);
                     res.send({ access_token })
                 })
             } else {
-                res.send('User already exist').status(406)
+                res.status(406).send('User already exist')
             }
         }
     })
@@ -121,52 +126,72 @@ app.post("/new-product", (req, res, next) => {
     var productType = req.body.productType;
     var purchaseDate = req.body.purchaseDate;
     var price = req.body.price;
-    var userId = req.body.userId;
 
     let newproduct = new Product({
         productName: productName,
         productDescription: productDescription,
         productType: productType,
         purchaseDate: purchaseDate,
-        price: price,
-        userId: userId
+        price: price
     });
 
-    newproduct.save(function (err) {
-        if (err) {
-            return next(err);
+    User.findOne({ email: req.decodedUserMail }, (err, user) => {
+        if (user !== null) {
+            user.products.push(newproduct);
+            user.save();
+            newproduct.save(function (err) {
+                if (err) {
+                    return next(err);
+                }
+                res.send("New Product saved!");
+            })
+        } else {
+            res.send('Error saving product')
         }
-        res.send("New Product saved!");
     })
 })
 
 app.get("/products", (req, res) => {
-    Product.find({}, function (err, products) {
-        if (err) {
-            return next(err)
-        }
+    User.findOne({ email: req.decodedUserMail })
+        .populate('products')
+        .exec((err, user) => {
+            if (!err && user !== null) {
+                res.send(user.products)
+            } else {
+                res.status(500).send("Error getting products")
+            }
 
-        res.send(products)
-    })
+        })
 })
 
 app.get("/expenses", (req, res) => {
-    Product.find({}, function (err, products) {
-        if (err) {
-            return next(err)
-        }
+    User.findOne({ email: req.decodedUserMail })
+        .populate('expenses')
+        .exec((err, user) => {
+            if (!err && user !== null) {
+                res.send(user.expenses)
+            } else {
+                res.status(500).send("Error getting expenses")
+            }
 
-        res.send(products)
-    })
+        })
+    // Product.find({}, function (err, products) {
+    //     if (err) {
+    //         return next(err)
+    //     }
+
+    //     res.send(products)
+    // })
 })
 
 
 app.delete('/products/:id', (req, res, next) => {
-    Product.deleteOne({ _id: req.params.id }, function (err) {
+    Product.deleteOne({ _id: req.params.id }, function (err, data) {
         if (err) {
             return next(err)
         }
-        res.send('Succesfully Deleted product')
+        Product.find({}).then(data => res.send(data))
+        // res.send(data)
     }
     )
 })
