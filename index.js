@@ -185,16 +185,39 @@ app.get("/expenses", (req, res) => {
 })
 
 
+// app.delete('/products/:id', (req, res, next) => {
+//     Product.deleteOne({ _id: req.params.id }, function (err, data) {
+//         if (err) {
+//             return next(err)
+//         }
+//         Product.find({}).then(data => res.send(data))
+//         // res.send(data)
+//     }
+//     )
+// })
+
 app.delete('/products/:id', (req, res, next) => {
-    Product.deleteOne({ _id: req.params.id }, function (err, data) {
+    Product.findByIdAndDelete({ _id: req.params.id }, function (err, data) {
         if (err) {
             return next(err)
         }
-        Product.find({}).then(data => res.send(data))
-        // res.send(data)
+        User.findOne({ email: req.decodedUserMail })
+        .populate('products')
+        .exec((err, user) => {
+            if (!err && user !== null) {
+                res.send(user.products)
+            } else {
+                res.status(500).send("Error getting products")
+            }
+
+        })
     }
     )
 })
+
+
+
+
 
 app.patch('/products/:id', (req, res, next) => {
     Product.findByIdAndUpdate({ _id: req.params.id }, req.body, (err) => {
