@@ -164,12 +164,32 @@ app.get("/products", (req, res) => {
         })
 })
 
+// app.get("/expenses", (req, res) => {
+//     User.findOne({ email: req.decodedUserMail })
+//         .populate('expenses')
+//         .exec((err, user) => {
+//             if (!err && user !== null) {
+//                 res.send(user.expenses)
+//             } else {
+//                 res.status(500).send("Error getting expenses")
+//             }
+
+//         })
+//     // Product.find({}, function (err, products) {
+//     //     if (err) {
+//     //         return next(err)
+//     //     }
+
+//     //     res.send(products)
+//     // })
+// })
+
 app.get("/expenses", (req, res) => {
     User.findOne({ email: req.decodedUserMail })
-        .populate('expenses')
+        .populate('products')
         .exec((err, user) => {
             if (!err && user !== null) {
-                res.send(user.expenses)
+                res.send(user.products)
             } else {
                 res.status(500).send("Error getting expenses")
             }
@@ -215,18 +235,37 @@ app.delete('/products/:id', (req, res, next) => {
     )
 })
 
-
-
-
-
-app.patch('/products/:id', (req, res, next) => {
-    Product.findByIdAndUpdate({ _id: req.params.id }, req.body, (err) => {
+app.patch('/edit/:id', (req, res, next) => {
+    Product.findByIdAndUpdate({ _id: req.params.id }, function (err, data) {
         if (err) {
             return next(err)
         }
-        res.send('Succesfully Updated product')
-    })
+        User.findOne({ email: req.decodedUserMail })
+        .populate('products')
+        .exec((err, user) => {
+            if (!err && user !== null) {
+                res.send(user.products)
+            } else {
+                res.status(500).send("Error getting products")
+            }
+
+        })
+    }
+    )
 })
+
+
+
+
+
+// app.patch('/products/:id', (req, res, next) => {
+//     Product.findByIdAndUpdate({ _id: req.params.id }, req.body, (err) => {
+//         if (err) {
+//             return next(err)
+//         }
+//         res.send('Succesfully Updated product')
+//     })
+// })
 
 
 
