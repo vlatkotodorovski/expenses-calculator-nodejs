@@ -12,6 +12,7 @@
 const mongoose = require('mongoose');
 // import mongoose from 'mongoose';
 const Schema = mongoose.Schema;
+const bcrypt = require('bcrypt')
 
 var usersSchema = new Schema({
     firstname: { type: String, required: true },
@@ -22,6 +23,19 @@ var usersSchema = new Schema({
     country: { type: String, required: true },
     password: { type: String, required: true },
     products: [{ type: Schema.Types.ObjectId, ref: 'Product' }]
+})
+
+usersSchema.pre('save', async function (next) {
+    try {
+        const salt = await bcrypt.genSalt(10)
+
+        const passwordHash = await bcrypt.hash(this.password, salt)
+
+        this.password = passwordHash;
+        next();
+    } catch (error) {
+        next(error)
+    }
 })
 
 var User = mongoose.model('User', usersSchema);

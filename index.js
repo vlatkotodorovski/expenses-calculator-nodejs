@@ -4,6 +4,7 @@ const Product = require('./models/products');
 const myParser = require('body-parser');
 const session = require('express-session');
 var cors = require('cors')
+const bcrypt = require('bcrypt');
 // const User = require('./models/users')
 const jwt = require('jsonwebtoken');
 const jwtSecret = "secret";
@@ -52,13 +53,17 @@ app.post("/login", (req, res) => {
     var email = req.body.email;
     var password = req.body.password;
 
-    User.findOne({ email, password }, (err, user) => {
+    User.findOne({ email }, (err, user) => {
         if (err) {
             res.send('Error from database').status(500);
         } else {
             if (user !== null) {
-                const access_token = jwt.sign({ email: user.email }, jwtSecret);
-                res.send({ access_token })
+                if (bcrypt.compareSync(password, user.password)) {
+                    const access_token = jwt.sign({ email: user.email }, jwtSecret);
+                    res.send({ access_token, user })
+                } else {
+                    res.status(401).send("Password not correct")
+                }
             } else {
                 res.status(403).send('Credentials not correct');
             }
@@ -222,36 +227,68 @@ app.delete('/products/:id', (req, res, next) => {
             return next(err)
         }
         User.findOne({ email: req.decodedUserMail })
-        .populate('products')
-        .exec((err, user) => {
-            if (!err && user !== null) {
-                res.send(user.products)
-            } else {
-                res.status(500).send("Error getting products")
-            }
+            .populate('products')
+            .exec((err, user) => {
+                if (!err && user !== null) {
+                    res.send(user.products)
+                } else {
+                    res.status(500).send("Error getting products")
+                }
 
-        })
+            })
     }
     )
 })
 
-app.patch('/edit/:id', (req, res, next) => {
-    Product.findByIdAndUpdate({ _id: req.params.id }, function (err, data) {
-        if (err) {
-            return next(err)
+app.get('/profile', (req, res) => {
+    User.findOne({ email: req.decodedUserMail }, (err, user) => {
+        if (!err && user !== null) {
+            res.send(user)
+        } else {
+            res.status(500).send("Error getting User")
         }
-        User.findOne({ email: req.decodedUserMail })
-        .populate('products')
-        .exec((err, user) => {
-            if (!err && user !== null) {
-                res.send(user.products)
-            } else {
-                res.status(500).send("Error getting products")
-            }
+    })
+})
 
-        })
-    }
-    )
+app.patch('/edit/:id', (req, res, next) => {
+    console.log("id", req.body);
+
+    let { productName, productDescription, productType, price, purchaseDate } = req.body;
+
+    console.log(productName)
+    Product.findByIdAndUpdate(req.params.id, {
+        productName,
+        productDescription,
+        productType,
+        price,
+        purchaseDate
+    }).then(resp => {
+        console.log('resp', resp)
+        res.send("OK")
+    }).catch(err => {
+        console.log(err)
+        res.send("ERROR")
+    })
+    // Product.findByIdAndUpdate(req.params.id, function (err, data) {
+    //     if (err) {
+    //         console.log(' err')
+    //         return next(err)
+    //     }
+    //     console.log('a')
+    //     User.findOne({ email: req.decodedUserMail })
+    //     .populate('products')
+    //     .exec((err, user) => {
+    //         if (!err && user !== null) {
+    //             res.send(user.products)
+    //         } else {
+    //             res.status(500).send("Error getting products")
+    //         }
+
+    //     })
+    // }
+    // )
+    // res.send("as")
+    console.log('aSD')
 })
 
 
